@@ -30,29 +30,44 @@ import java.util.List;
 
 @Mod.EventBusSubscriber(Dist.CLIENT)
 public class OverlayRenderHelper {
-    static List<Pair<Pair<BlockPos, Direction>, ItemStack>> toFill = new ArrayList<>();
+    static List<Pair<Pair<BlockPos, Direction>, ItemStack>> renderList = new ArrayList<>();
+    static ItemStack currentItem = ItemStack.EMPTY;
 
     @SubscribeEvent
-    public static void onKeyPress(TickEvent.ClientTickEvent event) {
+    public static void onKeyPress(TickEvent.PlayerTickEvent event) {
         if (Distributor.DISTRIBUTE.isKeyDown()) {
             RayTraceResult result = Minecraft.getInstance().objectMouseOver;
             if (result.getType().equals(RayTraceResult.Type.BLOCK)) {
                 BlockRayTraceResult blockRayTraceResult = (BlockRayTraceResult) result;
                 if (Minecraft.getInstance().world.getBlockState(blockRayTraceResult.getPos()).hasTileEntity()) {
                     TileEntity tileEntity = Minecraft.getInstance().world.getTileEntity(blockRayTraceResult.getPos());
-                    if (tileEntity.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY).isPresent() && toFill.stream().noneMatch((x) -> x.getLeft().getLeft().equals(blockRayTraceResult.getPos()))) {
+                    ItemStack heldItem = Minecraft.getInstance().player.getHeldItem(Hand.MAIN_HAND);
+                    if (!currentItem.equals(heldItem) && !currentItem.isEmpty()) {
+                        currentItem = ItemStack.EMPTY;
+                        renderList.clear();
+                        return;
+                    }
+                    if (tileEntity.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY).isPresent() && renderList.stream().noneMatch((x) -> x.getLeft().getLeft().equals(blockRayTraceResult.getPos()))) {
+                        currentItem = heldItem;
                         addAndRecalculateAmount(Pair.of(blockRayTraceResult.getPos(), blockRayTraceResult.getFace()), Minecraft.getInstance().player.getHeldItem(Hand.MAIN_HAND));
                     }
                 }
+            }
+        } else {
+            if (!renderList.isEmpty()) {
+                ArrayList<Pair<BlockPos, ItemStack>> toFill = new ArrayList<>();
+                renderList.forEach(x -> toFill.add(Pair.of(x.getLeft().getLeft(), x.getRight())));
+                Distributor.networkChannel.sendToServer(new DistributePacket(toFill));
+                renderList.clear();
             }
         }
     }
 
     public static void addAndRecalculateAmount(Pair<BlockPos, Direction> block, ItemStack heldItem) {
-        int amount = Math.floorDiv(heldItem.getCount(), (toFill.size() + 1));
+        int amount = Math.floorDiv(heldItem.getCount(), (renderList.size() + 1));
         if (amount <= 0) return;
-        toFill.add(Pair.of(block, new ItemStack(heldItem.getItem(), amount)));
-        toFill.forEach(x -> x.getRight().setCount(amount));
+        renderList.add(Pair.of(block, new ItemStack(heldItem.getItem(), amount)));
+        renderList.forEach(x -> x.getRight().setCount(amount));
     }
 
     @SubscribeEvent
@@ -60,14 +75,13 @@ public class OverlayRenderHelper {
         if (event.getPhase() != EventPriority.NORMAL)
             return;
 
-        if (!Distributor.DISTRIBUTE.isKeyDown()) toFill.clear();
-
         MatrixStack matrixStack = event.getMatrixStack();
-        renderOverlays(toFill, matrixStack);
+        renderOverlays(renderList, matrixStack);
     }
 
     public static void renderOverlays(List<Pair<Pair<BlockPos, Direction>, ItemStack>> toRender, MatrixStack matrixStack) {
-        for (Pair<Pair<BlockPos, Direction>, ItemStack> item : toRender) {
+        List<Pair<Pair<BlockPos, Direction>, ItemStack>> listCopy = new ArrayList<>(toRender);
+        for (Pair<Pair<BlockPos, Direction>, ItemStack> item : listCopy) {
             renderOverlay(((Integer) item.getRight().getCount()).toString(), item.getRight(), matrixStack, Vector3d.copy(item.getLeft().getLeft()), item.getLeft().getRight());
         }
     }
@@ -109,8 +123,8 @@ public class OverlayRenderHelper {
     public static void renderOverlay(String text, ItemStack item, MatrixStack matrixStack, Vector3d renderCoordinates, Direction face) {
         Vector3d projectedView = Minecraft.getInstance().gameRenderer.getActiveRenderInfo().getProjectedView();
 
-        IRenderTypeBuffer.Impl renderTypeBuffer = IRenderTypeBuffer.getImpl(Tessellator.getInstance().getBuffer());
-
+     //   IRenderTypeBuffer.Impl renderTypeBuffer = IRenderTypeBuffer.getImpl(Tessellator.getInstance().getBuffer());
+        IRenderTypeBuffer.Impl renderTypeBuffer = Minecraft.getInstance().getRenderTypeBuffers().getBufferSource();
         renderOverlayText(text, matrixStack, renderTypeBuffer, projectedView, renderCoordinates, face);
         renderOverlayItem(item, matrixStack, renderTypeBuffer, projectedView, renderCoordinates, face);
 
