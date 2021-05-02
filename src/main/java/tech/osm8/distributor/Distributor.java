@@ -1,8 +1,10 @@
 package tech.osm8.distributor;
 
+import net.minecraft.client.resources.I18n;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.client.util.InputMappings;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.Util;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.common.Mod;
@@ -29,7 +31,7 @@ public class Distributor {
 
     private static final String PROTOCOL_VERSION = "1";
     public static int packetId = 0;
-    public static final KeyBinding DISTRIBUTE = new KeyBinding("key.test", InputMappings.Type.KEYSYM, GLFW.GLFW_KEY_X, "key.categories.test");
+    public static KeyBinding DISTRIBUTE;
 
     public Distributor() {
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::commonSetupHandler);
@@ -52,6 +54,7 @@ public class Distributor {
     }
 
     private void clientSetupHandler(final FMLClientSetupEvent event) {
+        DISTRIBUTE = new KeyBinding(I18n.format("key.distribute"), InputMappings.Type.KEYSYM, GLFW.GLFW_KEY_X, I18n.format("key.categories.distributor"));
         ClientRegistry.registerKeyBinding(DISTRIBUTE);
     }
 
