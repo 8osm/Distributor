@@ -2,10 +2,6 @@ package tech.osm8.distributor;
 
 
 import com.mojang.blaze3d.matrix.MatrixStack;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.ChestBlock;
-import net.minecraft.block.NetherPortalBlock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.*;
@@ -20,23 +16,17 @@ import net.minecraft.util.math.BlockRayTraceResult;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.vector.Quaternion;
 import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.village.PointOfInterest;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
-import net.minecraftforge.common.util.ITeleporter;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.items.CapabilityItemHandler;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.logging.log4j.LogManager;
 
 import java.util.ArrayList;
-import java.util.Dictionary;
 import java.util.List;
-import java.util.Map;
 
 @Mod.EventBusSubscriber(Dist.CLIENT)
 public class OverlayRenderHelper {
@@ -51,11 +41,18 @@ public class OverlayRenderHelper {
                 if (Minecraft.getInstance().world.getBlockState(blockRayTraceResult.getPos()).hasTileEntity()) {
                     TileEntity tileEntity = Minecraft.getInstance().world.getTileEntity(blockRayTraceResult.getPos());
                     if (tileEntity.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY).isPresent() && toFill.stream().noneMatch((x) -> x.getLeft().getLeft().equals(blockRayTraceResult.getPos()))) {
-                        toFill.add(Pair.of(Pair.of(blockRayTraceResult.getPos(), blockRayTraceResult.getFace()), Minecraft.getInstance().player.getHeldItem(Hand.MAIN_HAND)));
+                        addAndRecalculateAmount(Pair.of(blockRayTraceResult.getPos(), blockRayTraceResult.getFace()), Minecraft.getInstance().player.getHeldItem(Hand.MAIN_HAND));
                     }
                 }
             }
         }
+    }
+
+    public static void addAndRecalculateAmount(Pair<BlockPos, Direction> block, ItemStack heldItem) {
+        int amount = Math.floorDiv(heldItem.getCount(), (toFill.size() + 1));
+        if (amount <= 0) return;
+        toFill.add(Pair.of(block, new ItemStack(heldItem.getItem(), amount)));
+        toFill.forEach(x -> x.getRight().setCount(amount));
     }
 
     @SubscribeEvent
@@ -66,7 +63,6 @@ public class OverlayRenderHelper {
         if (!Distributor.DISTRIBUTE.isKeyDown()) toFill.clear();
 
         MatrixStack matrixStack = event.getMatrixStack();
-        Minecraft.getInstance().gameRenderer.getMouseOver(event.getPartialTicks());
         renderOverlays(toFill, matrixStack);
     }
 
@@ -76,19 +72,36 @@ public class OverlayRenderHelper {
         }
     }
 
-    public static void handleViewingAngle(MatrixStack matrixStack, Direction face) {
+    public static void handleViewingAngle(MatrixStack matrixStack, Direction face, boolean isItem) {
         if (face.equals(Direction.NORTH)) {
             matrixStack.rotate(new Quaternion(0f, 1f, 0f, 0f));
+            if (isItem) {
+                matrixStack.translate(0f, 0f, -2f);
+                return;
+            }
             matrixStack.translate(-1f, 0f, 1f);
         } else if (face.equals(Direction.EAST)) {
             matrixStack.rotate(new Quaternion(0f, .707f, 0f, .707f));
+            if (isItem) {
+                matrixStack.translate(-1f, 0f, -1f);
+                return;
+            }
             matrixStack.translate(0f, 0f, 1f);
         } else if (face.equals(Direction.WEST)) {
             matrixStack.rotate(new Quaternion(0f, -.707f, 0f, .707f));
+            if (isItem) {
+                matrixStack.translate(1f, 0f, -1f);
+                return;
+            }
             matrixStack.translate(-1f, 0f, 0f);
         }
         if (face.equals(Direction.UP)) {
             matrixStack.rotate(new Quaternion(-.707f, 0f, 0f, .707f));
+            if (isItem) {
+                matrixStack.rotate(new Quaternion(1f, 0f, 0f, 0f));
+                matrixStack.translate(0f, 1f, -1f);
+                return;
+            }
             matrixStack.translate(0f, 1f, 0f);
         }
     }
@@ -110,8 +123,8 @@ public class OverlayRenderHelper {
         matrixStack.translate(-projectedView.x + renderCoordinates.x, -projectedView.y + renderCoordinates.y + 1, -projectedView.z + renderCoordinates.z + 1);
         matrixStack.scale(0.5f, 0.5f, 0.5f);
         matrixStack.rotate(new Quaternion(0f, 1f, 0f, 0f));
-//        matrixStack.translate(-1f, -1f, 0f);
-        handleViewingAngle(matrixStack, face);
+        matrixStack.translate(-1f, -1f, 0f);
+        handleViewingAngle(matrixStack, face, true);
         itemRenderer.renderItem(item, ItemCameraTransforms.TransformType.FIXED, 0xf000f0, OverlayTexture.NO_OVERLAY, matrixStack, renderTypeBuffer);
         matrixStack.pop();
     }
@@ -120,7 +133,7 @@ public class OverlayRenderHelper {
         FontRenderer fontRenderer = Minecraft.getInstance().fontRenderer;
         matrixStack.push();
         matrixStack.translate(-projectedView.x + renderCoordinates.x, -projectedView.y + renderCoordinates.y + 1, -projectedView.z + renderCoordinates.z + 1);
-        handleViewingAngle(matrixStack, face);
+        handleViewingAngle(matrixStack, face, false);
         matrixStack.translate(0f, 0f, 0.025f);
         float f3 = 0.0075F;
         float scale = 4f;
