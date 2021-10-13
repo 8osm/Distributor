@@ -123,7 +123,7 @@ public class OverlayRenderHelper {
     public static void renderOverlay(String text, ItemStack item, MatrixStack matrixStack, Vector3d renderCoordinates, Direction face) {
         Vector3d projectedView = Minecraft.getInstance().gameRenderer.getActiveRenderInfo().getProjectedView();
 
-     //   IRenderTypeBuffer.Impl renderTypeBuffer = IRenderTypeBuffer.getImpl(Tessellator.getInstance().getBuffer());
+        //   IRenderTypeBuffer.Impl renderTypeBuffer = IRenderTypeBuffer.getImpl(Tessellator.getInstance().getBuffer());
         IRenderTypeBuffer.Impl renderTypeBuffer = Minecraft.getInstance().getRenderTypeBuffers().getBufferSource();
         renderOverlayText(text, matrixStack, renderTypeBuffer, projectedView, renderCoordinates, face);
         renderOverlayItem(item, matrixStack, renderTypeBuffer, projectedView, renderCoordinates, face);
@@ -153,7 +153,7 @@ public class OverlayRenderHelper {
         float scale = 4f;
         matrixStack.scale(f3 * scale, f3 * scale, f3);
         matrixStack.rotate(new Quaternion(1f, 0f, 0f, 0f));
-        fontRenderer.renderString(fontRenderer.trimStringToWidth(text, 115), 0, 0, 0xffffff, false, matrixStack.getLast().getMatrix(), renderTypeBuffer, false, 0, 140);
+        fontRenderer.renderString(fontRenderer.trimStringToWidth(text, 115), 0, 0, -1, false, matrixStack.getLast().getMatrix(), renderTypeBuffer, false, 1056964608, 15728640);
         matrixStack.pop();
     }
 }
