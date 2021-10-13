@@ -14,6 +14,8 @@ apply plugin: 'net.minecraftforge.gradle'
 group = 'tech.osm8'
 version = '1.0.1'
 archivesBaseName = 'distributor'
+minecraftVersion = '1.16.5'
+forgeVersion = '36'
 
 sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8'
 
@@ -125,6 +127,12 @@ jar {
                 "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
         ])
     }
+}
+
+task setupActionsOutputs() {
+  println "::set-output name=mc-version::${minecraftVersion}"
+  println "::set-output name=distributor-version::${version}"
+  println "::set-output name=forge-version::${forgeVersion}"
 }
 
 jar.finalizedBy('reobfJar')
