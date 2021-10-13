@@ -17,17 +17,25 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: '11'
+      - name: Cache .gradle/caches
+        uses: actions/cache@v1
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: ${{ runner.os }}-gradle-
+      - name: Cache .gradle/wrapper
+        uses: actions/cache@v1
+        with:
+          path: ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('**/*.gradle') }}
+          restore-keys: ${{ runner.os }}-gradle-wrapper-
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
-      - uses: burrunan/gradle-cache-action@v1
-        name: Gradle with caching
-        with:
-          arguments: build --build-cache
-          gradle-version: wrapper
-      - name: Get version of Distributor, Forge, and Minecraft
-        run: ./gradlew setupActionsOutputs
+      - name: Gradle build
         id: gradle
+        run: ./gradlew setupActionsOutputs clean build
       - uses: actions/upload-artifact@v2
         with:
-          name: ${{ steps.gradle.output.distributor-version }}
+          name: ${{ steps.gradle.outputs.distributor-version }}
           path: build/libs/distributor*.jar
+          retention-days: 7
