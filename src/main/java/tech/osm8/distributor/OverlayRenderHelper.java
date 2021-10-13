@@ -153,7 +153,8 @@ public class OverlayRenderHelper {
         float scale = 4f;
         matrixStack.scale(f3 * scale, f3 * scale, f3);
         matrixStack.rotate(new Quaternion(1f, 0f, 0f, 0f));
-        fontRenderer.renderString(fontRenderer.trimStringToWidth(text, 115), 0, 0, -1, false, matrixStack.getLast().getMatrix(), renderTypeBuffer, false, 1056964608, 15728640);
+        fontRenderer.renderString(fontRenderer.trimStringToWidth(text, 115), 0, 0, 553648127, false, matrixStack.getLast().getMatrix(), renderTypeBuffer, false, 1056964608, 0xffffff);
+        fontRenderer.renderString(fontRenderer.trimStringToWidth(text, 115), 0, 0, -1, false, matrixStack.getLast().getMatrix(), renderTypeBuffer, false, 0, 15728640); // why the fuck is this needed
         matrixStack.pop();
     }
 }
